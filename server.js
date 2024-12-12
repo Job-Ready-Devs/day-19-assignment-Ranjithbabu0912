@@ -19,12 +19,17 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
 
 app.post('/students', async (req, res) => {
     try {
-        const { name, email } = req.body; // Extract name and email from the request body
-        const student = new Student({ name, email }); // Create a new student instance
-        await student.save(); // Save the student to the database
-        res.status(201).json({ message: 'Student created successfully', student }); // Respond with success
+        const { name, email } = req.body;
+        const student = new Student({ name, email });
+        await student.save();
+        res.status(201).json({ message: 'Student created successfully', student });
     } catch (error) {
-        res.status(400).json({ error: error.message }); // Handle errors and send a response
+        if (error.name === 'ValidationError') {
+            const errors = Object.values(error.errors).map(err => err.message);
+            res.status(400).json({ errors });
+        } else {
+            res.status(500).json({ error: 'Internal server error' });
+        }
     }
 });
 
@@ -49,16 +54,21 @@ app.get('/students/:id', async (req, res) => {
 
 app.put('/students/:id', async (req, res) => {
     try {
-        const { name, email } = req.body; // Extract updated data from the request body
+        const { name, email } = req.body;
         const student = await Student.findByIdAndUpdate(
-            req.params.id, // Find the student by ID
-            { name, email }, // Update the fields
-            { new: true, runValidators: true } // Return the updated document and validate fields
+            req.params.id,
+            { name, email },
+            { new: true, runValidators: true }
         );
-        if (!student) return res.status(404).json({ error: 'Student not found' }); // Handle not found
-        res.status(200).json({ message: 'Student updated successfully', student }); // Respond with success
+        if (!student) return res.status(404).json({ error: 'Student not found' });
+        res.status(200).json({ message: 'Student updated successfully', student });
     } catch (error) {
-        res.status(400).json({ error: error.message }); // Handle errors
+        if (error.name === 'ValidationError') {
+            const errors = Object.values(error.errors).map(err => err.message);
+            res.status(400).json({ errors });
+        } else {
+            res.status(500).json({ error: 'Internal server error' });
+        }
     }
 });
 
